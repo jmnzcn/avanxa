@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(USER)
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  habits         Habit[]
+  habitProgress  HabitProgress[] @relation("UserProgress")
+  auditLogs      AuditLog[]      @relation("AdminAuditLogs")
+
+  @@map("users")
+  
+  // Performance indexes
+  @@index([email])
+  @@index([role])
+  @@index([isBlocked])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model Habit {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  frequency   String   // daily, weekly, monthly
+  targetCount Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitProgress   HabitProgress[] @relation("HabitProgress")
+
+  @@map("habits")
+  
+  // Performance indexes
+  @@index([userId])
+  @@index([isActive])
+  @@index([frequency])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model HabitProgress {
+  id         String   @id @default(cuid())
+  habitId    String
+  userId     String
+  completedAt DateTime @default(now())
+  notes      String?
+
+  // Relationships
+  habit Habit @relation("HabitProgress", fields: [habitId], references: [id], onDelete: Cascade)
+  user  User  @relation("UserProgress", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Unique constraint: one completion per habit per day
+  @@unique([habitId, userId, completedAt])
+  @@map("habit_progress")
+  
+  // Performance indexes
+  @@index([habitId])
+  @@index([userId])
+  @@index([completedAt])
+  @@index([habitId, completedAt])
+  @@index([userId, completedAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String
+  action      String
+  targetType  String
+  targetId    String?
+  details     String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  adminUser   User     @relation("AdminAuditLogs", fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+  
+  // Performance indexes
+  @@index([adminUserId])
+  @@index([action])
+  @@index([targetType])
+  @@index([createdAt])
+  @@index([adminUserId, createdAt])
+}
