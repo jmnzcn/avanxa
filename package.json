@@ -1,0 +1,43 @@
+{
+  "name": "avanxa",
+  "version": "1.0.0",
+  "description": "Monorepo for Avanxa habit tracking application",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "clean": "npm run clean --workspaces",
+    "build": "npm run build --workspaces",
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
+    "dev:backend": "npm run backend:dev",
+    "dev:frontend": "npm run frontend:dev",
+    "test": "npm test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "backend:dev": "npm run dev --workspace=backend",
+    "frontend:dev": "npm run dev --workspace=frontend",
+    "backend:build": "npm run build --workspace=backend",
+    "frontend:build": "npm run build --workspace=frontend",
+    "backend:start": "npm run start --workspace=backend",
+    "frontend:preview": "npm run preview --workspace=frontend",
+    "db:generate": "npm run db:generate --workspace=backend",
+    "db:push": "npm run db:push --workspace=backend",
+    "db:migrate": "npm run db:migrate --workspace=backend",
+    "db:studio": "npm run db:studio --workspace=backend",
+    "db:seed": "npm run db:seed --workspace=backend"
+  },
+  "keywords": [
+    "monorepo",
+    "workspace",
+    "habit-tracking"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "concurrently": "^9.2.1",
+    "typescript": "^5.8.3"
+  }
+}
