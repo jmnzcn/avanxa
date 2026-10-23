@@ -141,6 +141,7 @@ export function Sidebar({
                 size="icon"
                 className="h-8 w-8"
                 title="Cerrar sesión"
+                aria-label="Cerrar sesión"
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4" />

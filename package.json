@@ -27,7 +27,8 @@
     "db:migrate": "npm run db:migrate --workspace=backend",
     "db:studio": "npm run db:studio --workspace=backend",
     "db:seed": "npm run db:seed --workspace=backend",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "e2e": "playwright test"
   },
   "keywords": [
     "monorepo",
@@ -37,6 +38,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.55.1",
     "@types/node": "^24.3.0",
     "concurrently": "^9.2.1",
     "typescript": "^5.8.3"
