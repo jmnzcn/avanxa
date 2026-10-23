@@ -13,7 +13,10 @@ export function MainLayout({
   requireAdmin = false,
   currentPath,
 }: MainLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // En móvil/tablet el sidebar es un panel flotante: arranca cerrado para no tapar el contenido
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => window.matchMedia("(min-width: 1024px)").matches
+  );
   const { user } = useAuth();
 
   // Check if user has required role

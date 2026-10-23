@@ -4,8 +4,6 @@ import {
   Plus,
   Target,
   BarChart3,
-  Settings,
-  Calendar,
   CheckCircle,
   Star,
 } from "lucide-react";
@@ -28,14 +26,21 @@ function QuickAction({
   return (
     <Button
       variant={variant}
-      className="h-auto p-4 flex-col items-start space-y-2 text-left"
+      className="h-auto w-full justify-start p-4 text-left whitespace-normal"
       onClick={onClick}
     >
       <div className="flex items-center space-x-2 w-full">
-        <div className="text-primary">{icon}</div>
+        {/* Sobre el botón principal (fondo azul) el ícono y la descripción van en blanco */}
+        <div className={variant === "default" ? "" : "text-primary"}>{icon}</div>
         <div className="flex-1">
           <div className="font-medium">{title}</div>
-          <div className="text-xs text-muted-foreground">{description}</div>
+          <div
+            className={`text-xs ${
+              variant === "default" ? "text-primary-foreground/80" : "text-muted-foreground"
+            }`}
+          >
+            {description}
+          </div>
         </div>
       </div>
     </Button>
@@ -45,20 +50,14 @@ function QuickAction({
 interface QuickActionsProps {
   onAddHabit?: () => void;
   onViewProgress?: () => void;
-  onViewCalendar?: () => void;
   onMarkComplete?: () => void;
-  onViewStats?: () => void;
-  onSettings?: () => void;
   onViewHabits?: () => void;
 }
 
 export function QuickActions({
   onAddHabit,
   onViewProgress,
-  onViewCalendar,
   onMarkComplete,
-  onViewStats,
-  onSettings,
   onViewHabits,
 }: QuickActionsProps) {
   return (
@@ -70,7 +69,7 @@ export function QuickActions({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
           <QuickAction
             title="Crear Hábito"
             description="Añadir un nuevo hábito a tu rutina"
@@ -97,35 +96,14 @@ export function QuickActions({
 
           <QuickAction
             title="Ver Progreso"
-            description="Revisar tu progreso semanal"
+            description="Historial y rachas de tu hábito principal"
             icon={<BarChart3 className="h-5 w-5" />}
             onClick={onViewProgress || (() => {})}
             variant="outline"
           />
 
-          <QuickAction
-            title="Calendario"
-            description="Ver tu historial de hábitos"
-            icon={<Calendar className="h-5 w-5" />}
-            onClick={onViewCalendar || (() => {})}
-            variant="outline"
-          />
 
-          <QuickAction
-            title="Estadísticas"
-            description="Analizar tus patrones"
-            icon={<Target className="h-5 w-5" />}
-            onClick={onViewStats || (() => {})}
-            variant="outline"
-          />
 
-          <QuickAction
-            title="Configuración"
-            description="Personalizar tu experiencia"
-            icon={<Settings className="h-5 w-5" />}
-            onClick={onSettings || (() => {})}
-            variant="secondary"
-          />
         </div>
       </CardContent>
     </Card>

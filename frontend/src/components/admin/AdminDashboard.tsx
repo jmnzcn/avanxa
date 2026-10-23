@@ -260,7 +260,9 @@ export function AdminDashboard() {
             <div className="text-2xl font-bold">
               {stats.recentActivity.length}
             </div>
-            <p className="text-xs text-muted-foreground">Últimas 24 horas</p>
+            <p className="text-xs text-muted-foreground">
+              Últimos registros de progreso
+            </p>
           </CardContent>
         </Card>
       </div>

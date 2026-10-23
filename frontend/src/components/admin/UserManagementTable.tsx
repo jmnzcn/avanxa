@@ -396,7 +396,7 @@ export function UserManagementTable({
                         <div className="text-sm">
                           <div>{user.totalHabits} total</div>
                           <div className="text-muted-foreground">
-                            {user.activeHabits} activos
+                            {user.totalCompletions} completados
                           </div>
                         </div>
                       </td>

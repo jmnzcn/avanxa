@@ -1,4 +1,4 @@
-import { env } from "@/config/env";
+import { apiRequest } from "@/lib/api";
 import {
   LoginCredentials,
   RegisterCredentials,
@@ -6,70 +6,55 @@ import {
   User,
 } from "@/types/auth";
 
-const API_BASE = env.VITE_API_URL;
+// Lo que devuelve el backend en login/register (dentro de `data`)
+interface AuthPayload {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
+}
+
+const toSession = ({ user, accessToken, refreshToken }: AuthPayload) => ({
+  user,
+  tokens: { accessToken, refreshToken },
+});
 
 class AuthService {
-  private async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_BASE}${endpoint}`;
-
-    const config: RequestInit = {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      credentials: "include", // Include cookies for JWT
-      ...options,
-    };
-
-    const response = await fetch(url, config);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
-      );
-    }
-
-    return response.json();
-  }
-
   async login(
     credentials: LoginCredentials
   ): Promise<{ user: User; tokens: AuthTokens }> {
-    return this.makeRequest("/api/auth/login", {
+    const payload = await apiRequest<AuthPayload>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
+    return toSession(payload);
   }
 
   async register(
     credentials: RegisterCredentials
   ): Promise<{ user: User; tokens: AuthTokens }> {
-    return this.makeRequest("/api/auth/register", {
+    const payload = await apiRequest<AuthPayload>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
+    return toSession(payload);
   }
 
   async logout(): Promise<void> {
-    return this.makeRequest("/api/auth/logout", {
-      method: "POST",
-    });
+    await apiRequest("/api/auth/logout", { method: "POST" });
   }
 
   async refreshToken(): Promise<{ tokens: AuthTokens }> {
-    return this.makeRequest("/api/auth/refresh", {
-      method: "POST",
-    });
+    // El backend solo renueva el access token; el refresh token sigue en su cookie
+    const { accessToken } = await apiRequest<{ accessToken: string }>(
+      "/api/auth/refresh",
+      { method: "POST" }
+    );
+    return { tokens: { accessToken, refreshToken: "" } };
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.makeRequest("/api/auth/me", {
-      method: "GET",
-    });
+    const { user } = await apiRequest<{ user: User }>("/api/auth/me");
+    return user;
   }
 
   async validateToken(): Promise<boolean> {

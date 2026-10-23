@@ -42,7 +42,7 @@ export default function ProgressPage() {
   });
 
   // Check if habit is completed today
-  const isCompletedToday = progress?.weeklyProgress?.[0]?.completions > 0;
+  const isCompletedToday = progress?.completedToday ?? false;
 
   if (habitLoading || progressLoading) {
     return (

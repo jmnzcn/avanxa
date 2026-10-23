@@ -133,8 +133,8 @@ export default function AdminPage() {
               <div>
                 <span className="font-medium">Hábitos:</span>
                 <p>
-                  {selectedUser.totalHabits} total, {selectedUser.activeHabits}{" "}
-                  activos
+                  {selectedUser.totalHabits} total,{" "}
+                  {selectedUser.totalCompletions} completados
                 </p>
               </div>
             </div>

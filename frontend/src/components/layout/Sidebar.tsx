@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/Button";
 import {
   Home,
   Target,
-  BarChart3,
-  Settings,
   Users,
   LogOut,
   Menu,
@@ -24,8 +22,6 @@ interface SidebarProps {
 const navigationItems = [
   { name: "Panel Principal", href: "/dashboard", icon: Home },
   { name: "Hábitos", href: "/habits", icon: Target },
-  { name: "Progreso", href: "/progress", icon: BarChart3 },
-  { name: "Configuración", href: "/settings", icon: Settings },
 ];
 
 const adminItems = [{ name: "Panel de Admin", href: "/admin", icon: Users }];

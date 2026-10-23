@@ -4,7 +4,12 @@ import {
   Route,
   useNavigate,
 } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
+import { CheckCircle, Flame } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -30,8 +35,14 @@ import {
 import { Button } from "@/components/ui/Button";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { SearchAndFilter } from "@/components/dashboard/SearchAndFilter";
+import {
+  RecentActivity,
+  type ActivityItem,
+} from "@/components/dashboard/RecentActivity";
+import {
+  dashboardService,
+  type HabitOverview,
+} from "@/services/dashboardService";
 import { Breadcrumb } from "@/components/navigation/Breadcrumb";
 import { breadcrumbConfigs } from "@/components/navigation/Breadcrumb";
 
@@ -161,41 +172,34 @@ function LandingPage() {
 
 // Dashboard component (enhanced)
 function Dashboard() {
-  // Sample data for demonstration
-  const sampleStats = {
-    activeHabits: 5,
-    currentStreak: 12,
-    completionRate: 87,
-    totalHabits: 8,
-    weeklyProgress: 92,
-    monthlyProgress: 78,
-  };
-
   const navigate = useNavigate();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: () => dashboardService.getDashboard(),
+  });
 
-  const handleQuickAction = (action: string) => {
-    console.log(`Quick action: ${action}`);
-    // TODO: Implement actual navigation or actions
-  };
+  // "Ver progreso" abre el hábito con la racha activa más larga
+  const topHabit = data?.habits.reduce<HabitOverview | undefined>(
+    (best, h) => (!best || h.currentStreak > best.currentStreak ? h : best),
+    undefined
+  );
 
-  const handleViewHabits = () => {
-    navigate("/habits");
-  };
+  const activities: ActivityItem[] = (data?.recentActivity ?? []).map((p) => ({
+    id: p.id,
+    type: "completed",
+    habitName: p.habit.name,
+    description: p.notes || "Completaste este hábito",
+    timestamp: formatRelative(p.completedAt),
+    icon: <CheckCircle className="h-4 w-4 text-green-600" />,
+    color: "bg-green-100",
+  }));
 
-  const handleSearch = (query: string) => {
-    console.log(`Search query: ${query}`);
-    // TODO: Implement actual search functionality
-  };
-
-  const handleFilterChange = (filters: string[]) => {
-    console.log(`Active filters: ${filters.join(", ")}`);
-    // TODO: Implement actual filtering
-  };
-
-  const handleSortChange = (sortBy: string) => {
-    console.log(`Sort by: ${sortBy}`);
-    // TODO: Implement actual sorting
-  };
+  const habitsByRate = [...(data?.habits ?? [])].sort(
+    (a, b) => b.last30DaysRate - a.last30DaysRate
+  );
+  const habitsByStreak = [...(data?.habits ?? [])]
+    .sort((a, b) => b.longestStreak - a.longestStreak)
+    .slice(0, 3);
 
   return (
     <MainLayout currentPath="/dashboard">
@@ -212,111 +216,114 @@ function Dashboard() {
           </p>
         </div>
 
-        {/* Dashboard Stats */}
-        <DashboardStats stats={sampleStats} />
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Quick Actions and Search */}
-          <div className="lg:col-span-1 space-y-6">
-            <QuickActions
-              onAddHabit={() => handleQuickAction("addHabit")}
-              onViewProgress={() => handleQuickAction("viewProgress")}
-              onViewCalendar={() => handleQuickAction("viewCalendar")}
-              onMarkComplete={() => handleQuickAction("markComplete")}
-              onViewStats={() => handleQuickAction("viewStats")}
-              onSettings={() => handleQuickAction("settings")}
-              onViewHabits={handleViewHabits}
-            />
-
-            <SearchAndFilter
-              onSearch={handleSearch}
-              onFilterChange={handleFilterChange}
-              onSortChange={handleSortChange}
-            />
-          </div>
-
-          {/* Right Column - Recent Activity */}
-          <div className="lg:col-span-2">
-            <RecentActivity activities={[]} />
-          </div>
-        </div>
-
-        {/* Additional Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {isLoading && <PageLoading />}
+        {error && (
           <Card>
-            <CardHeader>
-              <CardTitle>Próximos Objetivos</CardTitle>
-              <CardDescription>
-                Hábitos que están cerca de alcanzar sus metas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Ejercicio Matutino</span>
-                  <span className="text-sm font-medium text-green-600">
-                    95%
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: "95%" }}
-                  ></div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Leer</span>
-                  <span className="text-sm font-medium text-blue-600">87%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full"
-                    style={{ width: "87%" }}
-                  ></div>
-                </div>
-              </div>
+            <CardContent className="py-8 text-center text-red-600">
+              No se pudo cargar tu panel. Intenta recargar la página.
             </CardContent>
           </Card>
+        )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Logros Recientes</CardTitle>
-              <CardDescription>
-                Celebra tus éxitos y mantén la motivación
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-yellow-100 rounded-full">
-                    <span className="text-yellow-600 text-lg">🏆</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Racha de 30 días</p>
-                    <p className="text-xs text-muted-foreground">Meditación</p>
-                  </div>
-                </div>
+        {data && (
+          <>
+            {/* Dashboard Stats */}
+            <DashboardStats data={data} />
 
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 rounded-full">
-                    <span className="text-green-600 text-lg">🎯</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">
-                      Meta semanal alcanzada
-                    </p>
-                    <p className="text-xs text-muted-foreground">Ejercicio</p>
-                  </div>
-                </div>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <QuickActions
+                  onAddHabit={() => navigate("/habits")}
+                  onViewHabits={() => navigate("/habits")}
+                  onMarkComplete={() => navigate("/habits")}
+                  onViewProgress={() =>
+                    navigate(topHabit ? `/progress/${topHabit.id}` : "/habits")
+                  }
+                />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+
+              <div className="lg:col-span-2">
+                <RecentActivity activities={activities} />
+              </div>
+            </div>
+
+            {/* Additional Info Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cumplimiento por Hábito</CardTitle>
+                  <CardDescription>Últimos 30 días</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {habitsByRate.map((habit) => (
+                      <div key={habit.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm">{habit.name}</span>
+                          <span className="text-sm font-medium">
+                            {habit.last30DaysRate}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full"
+                            style={{ width: `${habit.last30DaysRate}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mejores Rachas</CardTitle>
+                  <CardDescription>
+                    Tus días consecutivos más largos por hábito
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {habitsByStreak.map((habit) => (
+                      <div key={habit.id} className="flex items-center space-x-3">
+                        <div className="p-2 bg-orange-100 rounded-full">
+                          <Flame className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{habit.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Racha actual: {habit.currentStreak}{" "}
+                            {habit.frequency === "weekly" ? "semanas" : "días"}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold">
+                          {habit.longestStreak}{" "}
+                          {habit.frequency === "weekly" ? "sem." : "días"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     </MainLayout>
   );
+}
+
+// "Hace 2 horas", "Hace 3 días"…
+function formatRelative(iso: string) {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return "Justo ahora";
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `Hace ${hours} ${hours === 1 ? "hora" : "horas"}`;
+  const days = Math.round(hours / 24);
+  return `Hace ${days} ${days === 1 ? "día" : "días"}`;
 }
 
 function App() {
@@ -345,7 +352,9 @@ function App() {
                       <Suspense
                         fallback={<PageLoading message="Cargando hábitos..." />}
                       >
-                        <HabitsPage />
+                        <MainLayout currentPath="/habits">
+                          <HabitsPage />
+                        </MainLayout>
                       </Suspense>
                     </ProtectedRoute>
                   }
@@ -359,7 +368,9 @@ function App() {
                           <PageLoading message="Cargando progreso..." />
                         }
                       >
-                        <ProgressPage />
+                        <MainLayout currentPath="/progress">
+                          <ProgressPage />
+                        </MainLayout>
                       </Suspense>
                     </ProtectedRoute>
                   }
@@ -373,7 +384,9 @@ function App() {
                           <PageLoading message="Cargando panel de administración..." />
                         }
                       >
-                        <AdminPage />
+                        <MainLayout currentPath="/admin">
+                          <AdminPage />
+                        </MainLayout>
                       </Suspense>
                     </ProtectedRoute>
                   }

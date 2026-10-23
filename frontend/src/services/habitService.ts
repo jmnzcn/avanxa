@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/api";
 import {
   Habit,
   CreateHabitRequest,
@@ -7,79 +8,144 @@ import {
   HabitStatistics,
   CompleteHabitRequest,
   HabitProgress,
+  WeeklyProgress,
+  MonthlyProgress,
 } from "@/types/habit";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+// El backend guarda la frecuencia en minúsculas ("daily"); la UI usa "DAILY".
+type ApiFrequency = "daily" | "weekly" | "monthly";
+type ApiHabit = Omit<Habit, "frequency"> & { frequency: ApiFrequency };
+
+const fromApi = (habit: ApiHabit): Habit => ({
+  ...habit,
+  frequency: habit.frequency.toUpperCase() as Habit["frequency"],
+});
+
+const toApiFrequency = (frequency?: Habit["frequency"]) =>
+  frequency?.toLowerCase() as ApiFrequency | undefined;
+
+const toApiBody = (data: CreateHabitRequest | UpdateHabitRequest) =>
+  JSON.stringify({ ...data, frequency: toApiFrequency(data.frequency) });
+
+interface ApiHabitStats {
+  habit: ApiHabit;
+  stats: {
+    totalProgress: number;
+    completionRate: number;
+    streakInfo: { currentStreak: number; longestStreak: number };
+  };
+}
+
+interface ApiProgressEntry {
+  id: string;
+  completedAt: string;
+  notes?: string;
+}
+
+const dayMs = 24 * 60 * 60 * 1000;
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+// Últimas `weeks` semanas, de la más reciente a la más antigua (la UI lee [0] como "esta semana")
+function weeklyBreakdown(entries: ApiProgressEntry[], target: number, weeks = 4): WeeklyProgress[] {
+  const today = startOfDay(new Date());
+  return Array.from({ length: weeks }, (_, i) => {
+    const end = new Date(today.getTime() - i * 7 * dayMs + dayMs);
+    const start = new Date(end.getTime() - 7 * dayMs);
+    const completions = entries.filter((e) => {
+      const t = new Date(e.completedAt).getTime();
+      return t >= start.getTime() && t < end.getTime();
+    }).length;
+    return {
+      week: start.toLocaleDateString("es", { day: "numeric", month: "short" }),
+      completions,
+      target,
+      percentage: target ? Math.min(100, Math.round((completions / target) * 100)) : 0,
+    };
+  });
+}
+
+function monthlyBreakdown(
+  entries: ApiProgressEntry[],
+  frequency: ApiFrequency,
+  createdAt: string,
+  months = 6
+): MonthlyProgress[] {
+  const now = new Date();
+  const created = new Date(createdAt);
+  // Solo los meses desde que existe el hábito
+  const available = (now.getFullYear() - created.getFullYear()) * 12 + now.getMonth() - created.getMonth() + 1;
+  return Array.from({ length: Math.min(months, available) }, (_, i) => {
+    const first = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    const days = Math.round((next.getTime() - first.getTime()) / dayMs);
+    const target = frequency === "daily" ? days : frequency === "weekly" ? Math.round(days / 7) : 1;
+    const completions = entries.filter((e) => {
+      const t = new Date(e.completedAt);
+      return t >= first && t < next;
+    }).length;
+    return {
+      month: first.toLocaleDateString("es", { month: "short", year: "numeric" }),
+      completions,
+      target,
+      percentage: Math.min(100, Math.round((completions / target) * 100)),
+    };
+  });
+}
 
 class HabitService {
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-
-    const response = await fetch(url, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
-      );
-    }
-
-    return response.json();
-  }
-
   // Get all habits for the current user
   async getHabits(filters: HabitFilters = {}): Promise<HabitListResponse> {
     const params = new URLSearchParams();
 
     if (filters.search) params.append("search", filters.search);
-    if (filters.frequency) params.append("frequency", filters.frequency);
+    if (filters.frequency) params.append("frequency", toApiFrequency(filters.frequency)!);
     if (filters.isActive !== undefined)
       params.append("isActive", filters.isActive.toString());
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.limit) params.append("limit", filters.limit.toString());
 
     const queryString = params.toString();
-    const endpoint = `/api/habits${queryString ? `?${queryString}` : ""}`;
+    const { habits, pagination } = await apiRequest<{
+      habits: ApiHabit[];
+      pagination: { page: number; limit: number; total: number; pages: number };
+    }>(`/api/habits${queryString ? `?${queryString}` : ""}`);
 
-    return this.request<HabitListResponse>(endpoint);
+    return {
+      habits: habits.map(fromApi),
+      total: pagination.total,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: pagination.pages,
+    };
   }
 
   // Get a single habit by ID
   async getHabit(id: string): Promise<Habit> {
-    return this.request<Habit>(`/api/habits/${id}`);
+    const { habit } = await apiRequest<{ habit: ApiHabit }>(`/api/habits/${id}`);
+    return fromApi(habit);
   }
 
   // Create a new habit
   async createHabit(habit: CreateHabitRequest): Promise<Habit> {
-    return this.request<Habit>("/api/habits", {
+    const { habit: created } = await apiRequest<{ habit: ApiHabit }>("/api/habits", {
       method: "POST",
-      body: JSON.stringify(habit),
+      body: toApiBody(habit),
     });
+    return fromApi(created);
   }
 
   // Update an existing habit
   async updateHabit(id: string, updates: UpdateHabitRequest): Promise<Habit> {
-    return this.request<Habit>(`/api/habits/${id}`, {
+    const { habit } = await apiRequest<{ habit: ApiHabit }>(`/api/habits/${id}`, {
       method: "PUT",
-      body: JSON.stringify(updates),
+      body: toApiBody(updates),
     });
+    return fromApi(habit);
   }
 
-  // Delete a habit
+  // Delete a habit (el backend lo desactiva: soft delete)
   async deleteHabit(id: string): Promise<void> {
-    return this.request<void>(`/api/habits/${id}`, {
-      method: "DELETE",
-    });
+    await apiRequest(`/api/habits/${id}`, { method: "DELETE" });
   }
 
   // Mark a habit as completed for today
@@ -87,25 +153,33 @@ class HabitService {
     habitId: string,
     data: CompleteHabitRequest = {}
   ): Promise<HabitProgress> {
-    return this.request<HabitProgress>(`/api/progress/${habitId}/complete`, {
+    const { progress } = await apiRequest<{ progress: HabitProgress }>("/api/progress/complete", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: JSON.stringify({ habitId, ...data }),
     });
+    return progress;
   }
 
   // Get progress statistics for a habit
   async getHabitProgress(habitId: string): Promise<HabitStatistics> {
-    return this.request<HabitStatistics>(`/api/progress/${habitId}`);
-  }
+    const [{ habit, stats }, history] = await Promise.all([
+      apiRequest<ApiHabitStats>(`/api/habits/${habitId}/stats`),
+      this.getHabitProgressHistory(habitId),
+    ]);
+    const weeklyTarget = habit.frequency === "daily" ? 7 * habit.targetCount : habit.targetCount;
 
-  // Get weekly summary
-  async getWeeklySummary(): Promise<HabitStatistics[]> {
-    return this.request<HabitStatistics[]>("/api/progress/summary/weekly");
-  }
-
-  // Get monthly summary
-  async getMonthlySummary(): Promise<HabitStatistics[]> {
-    return this.request<HabitStatistics[]>("/api/progress/summary/monthly");
+    const today = startOfDay(new Date()).getTime();
+    return {
+      totalCompletions: stats.totalProgress,
+      completedToday: history.some(
+        (e) => startOfDay(new Date(e.completedAt)).getTime() === today
+      ),
+      currentStreak: stats.streakInfo.currentStreak,
+      longestStreak: stats.streakInfo.longestStreak,
+      completionRate: stats.completionRate,
+      weeklyProgress: weeklyBreakdown(history, weeklyTarget),
+      monthlyProgress: monthlyBreakdown(history, habit.frequency, habit.createdAt),
+    };
   }
 
   // Get habit progress for a specific date range
@@ -114,12 +188,19 @@ class HabitService {
     startDate: string,
     endDate: string
   ): Promise<HabitProgress[]> {
-    const params = new URLSearchParams({
-      startDate,
-      endDate,
-    });
+    const params = new URLSearchParams({ startDate, endDate, limit: "100" });
+    const { progress } = await apiRequest<{ progress: HabitProgress[] }>(
+      `/api/progress/habit/${habitId}?${params}`
+    );
+    return progress;
+  }
 
-    return this.request<HabitProgress[]>(`/api/progress/${habitId}?${params}`);
+  // Historial reciente de un hábito (hasta 100 registros, el máximo del backend)
+  private async getHabitProgressHistory(habitId: string): Promise<ApiProgressEntry[]> {
+    const { progress } = await apiRequest<{ progress: ApiProgressEntry[] }>(
+      `/api/progress/habit/${habitId}?limit=100`
+    );
+    return progress;
   }
 }
 

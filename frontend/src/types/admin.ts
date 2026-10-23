@@ -9,7 +9,6 @@ export interface AdminUser {
   updatedAt: string;
   lastLoginAt?: string;
   totalHabits: number;
-  activeHabits: number;
   totalCompletions: number;
 }
 

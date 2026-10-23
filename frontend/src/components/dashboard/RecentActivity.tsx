@@ -1,15 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  Trophy,
-  Target,
-  Calendar,
-} from "lucide-react";
+import { Clock, Target, Calendar } from "lucide-react";
 
-interface ActivityItem {
+export interface ActivityItem {
   id: string;
   type: "completed" | "missed" | "streak" | "achievement";
   habitName: string;
@@ -23,7 +16,7 @@ interface RecentActivityProps {
   activities: ActivityItem[];
 }
 
-function ActivityItem({ activity }: { activity: ActivityItem }) {
+function ActivityRow({ activity }: { activity: ActivityItem }) {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "completed":
@@ -82,57 +75,7 @@ function ActivityItem({ activity }: { activity: ActivityItem }) {
 }
 
 export function RecentActivity({ activities }: RecentActivityProps) {
-  // Sample activities for demonstration
-  const sampleActivities: ActivityItem[] = [
-    {
-      id: "1",
-      type: "completed",
-      habitName: "Ejercicio Matutino",
-      description: "Completaste tu rutina de ejercicios de la mañana",
-      timestamp: "Hace 2 horas",
-      icon: <CheckCircle className="h-4 w-4 text-green-600" />,
-      color: "bg-green-100",
-    },
-    {
-      id: "2",
-      type: "streak",
-      habitName: "Leer",
-      description: "¡Nueva racha! 7 días consecutivos leyendo",
-      timestamp: "Hace 1 día",
-      icon: <Trophy className="h-4 w-4 text-blue-600" />,
-      color: "bg-blue-100",
-    },
-    {
-      id: "3",
-      type: "achievement",
-      habitName: "Meditación",
-      description: "Lograste meditar por 30 días consecutivos",
-      timestamp: "Hace 2 días",
-      icon: <Target className="h-4 w-4 text-yellow-600" />,
-      color: "bg-yellow-100",
-    },
-    {
-      id: "4",
-      type: "missed",
-      habitName: "Beber Agua",
-      description: "No alcanzaste tu meta de 8 vasos de agua",
-      timestamp: "Hace 3 días",
-      icon: <XCircle className="h-4 w-4 text-red-600" />,
-      color: "bg-red-100",
-    },
-    {
-      id: "5",
-      type: "completed",
-      habitName: "Escribir en el Diario",
-      description: "Completaste tu entrada diaria del diario",
-      timestamp: "Hace 4 días",
-      icon: <CheckCircle className="h-4 w-4 text-green-600" />,
-      color: "bg-green-100",
-    },
-  ];
-
-  const displayActivities =
-    activities.length > 0 ? activities : sampleActivities;
+  const displayActivities = activities;
 
   return (
     <Card>
@@ -145,7 +88,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
       <CardContent>
         <div className="space-y-2">
           {displayActivities.map((activity) => (
-            <ActivityItem key={activity.id} activity={activity} />
+            <ActivityRow key={activity.id} activity={activity} />
           ))}
         </div>
 

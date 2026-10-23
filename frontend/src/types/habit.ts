@@ -35,6 +35,7 @@ export interface UpdateHabitRequest {
 
 export interface HabitStatistics {
   totalCompletions: number;
+  completedToday: boolean;
   currentStreak: number;
   longestStreak: number;
   completionRate: number;
