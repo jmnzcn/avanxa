@@ -36,19 +36,6 @@ export default function AdminPage() {
     }
   };
 
-  const getTabLabel = (tab: string) => {
-    switch (tab) {
-      case "dashboard":
-        return "Panel Principal";
-      case "users":
-        return "Gestión de Usuarios";
-      case "audit":
-        return "Registro de Auditoría";
-      default:
-        return tab;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Breadcrumb } from "@/components/navigation/Breadcrumb";
 import { habitService } from "@/services/habitService";
-import { Habit, HabitStatistics } from "@/types/habit";
 import { ProgressChart } from "@/components/progress/ProgressChart";
 import { StreakTracker } from "@/components/progress/StreakTracker";
 import { AchievementSystem } from "@/components/progress/AchievementSystem";

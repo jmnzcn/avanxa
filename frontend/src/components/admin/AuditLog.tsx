@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { adminService } from "@/services/adminService";
-import { AuditLogEntry } from "@/types/admin";
 import {
   Activity,
   User,
@@ -13,7 +12,6 @@ import {
   TrendingUp,
   Settings,
   Clock,
-  Eye,
 } from "lucide-react";
 
 export function AuditLog() {
@@ -28,7 +26,7 @@ export function AuditLog() {
   } = useQuery({
     queryKey: ["audit-logs", page, limit],
     queryFn: () => adminService.getAuditLogs(page, limit),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData, // React Query v5
   });
 
   const getTargetTypeIcon = (targetType: string) => {

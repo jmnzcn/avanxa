@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { adminService } from "@/services/adminService";
@@ -10,13 +15,11 @@ import { AdminUser, AdminUserFilters } from "@/types/admin";
 import {
   Search,
   Filter,
-  MoreHorizontal,
   UserCheck,
   UserX,
   Key,
   Trash2,
   Eye,
-  Edit,
 } from "lucide-react";
 
 interface UserManagementTableProps {
@@ -32,7 +35,6 @@ export function UserManagementTable({
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -46,7 +48,7 @@ export function UserManagementTable({
   } = useQuery({
     queryKey: ["admin-users", filters],
     queryFn: () => adminService.getUsers(filters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData, // React Query v5
   });
 
   // Block/Unblock user mutation

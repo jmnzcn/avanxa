@@ -11,7 +11,6 @@ interface ProgressChartProps {
 export function ProgressChart({
   weeklyProgress,
   monthlyProgress,
-  title = "Progreso del Hábito",
 }: ProgressChartProps) {
   // For now, we'll create a simple chart using CSS since Recharts isn't installed yet
   // This can be enhanced later with actual charting libraries

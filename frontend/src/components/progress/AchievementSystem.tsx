@@ -26,7 +26,6 @@ export function AchievementSystem({
   longestStreak,
   totalCompletions,
   completionRate,
-  habitName,
 }: AchievementSystemProps) {
   const achievements: Achievement[] = [
     // Streak achievements

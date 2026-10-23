@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { habitService } from "@/services/habitService";
@@ -35,7 +40,7 @@ export function HabitList({ onHabitSelect }: HabitListProps) {
   } = useQuery({
     queryKey: ["habits", filters],
     queryFn: () => habitService.getHabits(filters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData, // React Query v5
   });
 
   // Debug logging
@@ -170,7 +175,7 @@ export function HabitList({ onHabitSelect }: HabitListProps) {
           habit={editingHabit || undefined}
           onSubmit={handleFormSubmit}
           onCancel={handleCancelForm}
-          isLoading={habitMutation.isLoading}
+          isLoading={habitMutation.isPending}
         />
       </div>
     );
