@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -7,10 +7,11 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { env } from "@/config/env";
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  // El modo sale de la URL: /register muestra el registro y /login el inicio de sesión
+  const isLogin = location.pathname !== "/register";
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -41,8 +42,9 @@ export default function AuthPage() {
     // The useEffect will handle the redirect
   };
 
-  const switchToLogin = () => setIsLogin(true);
-  const switchToRegister = () => setIsLogin(false);
+  // `state` conserva la página a la que el usuario quería ir antes de autenticarse
+  const switchToLogin = () => navigate("/login", { state: location.state });
+  const switchToRegister = () => navigate("/register", { state: location.state });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
