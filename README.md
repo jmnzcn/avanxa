@@ -181,7 +181,7 @@ Desplegada en **https://avanxa.onrender.com**. [`render.yaml`](render.yaml) desc
 
 - **Servicio web** (Node 22): `npm ci` → `prisma generate` → build de backend y frontend.
 - **Arranque**: aplica el esquema con Prisma, carga los datos de demo (idempotente: reiniciar no duplica nada) y levanta la API.
-- **PostgreSQL** administrado, conectado automáticamente vía `DATABASE_URL`.
+- **PostgreSQL en [Neon](https://neon.tech)** (plan gratuito permanente, misma región que el servicio). Su URL de conexión es un secreto que se carga en el panel de Render como `DATABASE_URL`.
 - **Secretos generados por Render**: `JWT_SECRET`, `JWT_REFRESH_SECRET` y la contraseña del admin de la demo (`DEMO_ADMIN_PASSWORD`). El admin público nunca usa una contraseña conocida.
 
 Para probar el modo producción en local:

@@ -1,12 +1,6 @@
 # Blueprint de Render: https://render.com/docs/blueprint-spec
-# Un solo servicio web (API + frontend en el mismo dominio) y una base PostgreSQL.
-databases:
-  - name: avanxa-db
-    plan: free
-    region: virginia
-    databaseName: avanxa
-    user: avanxa
-
+# Un solo servicio web (API + frontend en el mismo dominio). La base PostgreSQL vive
+# en Neon (plan gratuito permanente); su URL se configura en el panel de Render.
 services:
   - type: web
     name: avanxa
@@ -24,10 +18,10 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
+      # Connection string de Neon (con sslmode=require). Es un secreto: se carga a mano
+      # en Render → avanxa → Environment y el Blueprint no la sobrescribe.
       - key: DATABASE_URL
-        fromDatabase:
-          name: avanxa-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
