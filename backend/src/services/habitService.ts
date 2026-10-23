@@ -509,7 +509,7 @@ export class HabitService {
       return 0;
     }
 
-    return Math.round((totalProgress / expectedCompletions) * 100);
+    return Math.min(100, Math.round((totalProgress / expectedCompletions) * 100));
   }
 
   /**

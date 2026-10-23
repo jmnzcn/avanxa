@@ -3,6 +3,26 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// Hábitos de demo: `rate` es la probabilidad de completarlo cada día del historial
+const DEMO_HABITS = [
+  { id: "habit-1", name: "Leer 30 minutos", description: "Leer al menos 30 minutos al día", frequency: "daily", rate: 0.85 },
+  { id: "habit-2", name: "Hacer ejercicio", description: "Entrenar al menos 45 minutos", frequency: "daily", rate: 0.7 },
+  { id: "habit-3", name: "Meditar", description: "Practicar mindfulness 15 minutos", frequency: "daily", rate: 0.6 },
+  { id: "habit-4", name: "Beber 2 litros de agua", description: "Mantenerse hidratado durante el día", frequency: "daily", rate: 0.9 },
+  { id: "habit-5", name: "Planificar la semana", description: "Revisar objetivos y agenda los domingos", frequency: "weekly", rate: 0.95 },
+] as const;
+
+const HISTORY_DAYS = 42;
+
+// Generador pseudoaleatorio con semilla fija: la demo siempre produce los mismos datos
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
 async function main() {
   console.log("🌱 Starting database seed...");
 
@@ -34,91 +54,50 @@ async function main() {
     },
   });
 
-  // Create sample habits for the regular user
-  const habits = await Promise.all([
-    prisma.habit.upsert({
-      where: { id: "habit-1" },
-      update: {},
-      create: {
-        id: "habit-1",
-        userId: user.id,
-        name: "Read Daily",
-        description: "Read at least 30 minutes every day",
-        frequency: "daily",
-        targetCount: 1,
-      },
-    }),
-    prisma.habit.upsert({
-      where: { id: "habit-2" },
-      update: {},
-      create: {
-        id: "habit-2",
-        userId: user.id,
-        name: "Exercise",
-        description: "Workout for at least 45 minutes",
-        frequency: "daily",
-        targetCount: 1,
-      },
-    }),
-    prisma.habit.upsert({
-      where: { id: "habit-3" },
-      update: {},
-      create: {
-        id: "habit-3",
-        userId: user.id,
-        name: "Meditation",
-        description: "Practice mindfulness for 15 minutes",
-        frequency: "daily",
-        targetCount: 1,
-      },
-    }),
-  ]);
-
-  // Create some sample progress entries
   const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+  today.setHours(0, 0, 0, 0);
+  const createdAt = new Date(today);
+  createdAt.setDate(createdAt.getDate() - HISTORY_DAYS);
 
-  await Promise.all([
-    prisma.habitProgress.upsert({
-      where: { id: "progress-1" },
-      update: {},
-      create: {
-        id: "progress-1",
-        habitId: habits[0].id,
-        userId: user.id,
-        completedAt: today,
-        notes: "Read chapter 5 of the book",
-      },
-    }),
-    prisma.habitProgress.upsert({
-      where: { id: "progress-2" },
-      update: {},
-      create: {
-        id: "progress-2",
-        habitId: habits[1].id,
-        userId: user.id,
-        completedAt: today,
-        notes: "Ran 5km in the park",
-      },
-    }),
-    prisma.habitProgress.upsert({
-      where: { id: "progress-3" },
-      update: {},
-      create: {
-        id: "progress-3",
-        habitId: habits[0].id,
-        userId: user.id,
-        completedAt: yesterday,
-        notes: "Read chapter 4 of the book",
-      },
-    }),
-  ]);
+  // Create sample habits for the regular user
+  const habits = await Promise.all(
+    DEMO_HABITS.map(({ rate, ...habit }) =>
+      prisma.habit.upsert({
+        where: { id: habit.id },
+        update: {},
+        create: { ...habit, userId: user.id, targetCount: 1, createdAt },
+      })
+    )
+  );
+
+  // Historial de progreso de las últimas semanas (hoy incluido)
+  const random = seededRandom(42);
+  const progress = [];
+  for (const habit of DEMO_HABITS) {
+    for (let daysAgo = HISTORY_DAYS - 1; daysAgo >= 0; daysAgo--) {
+      const day = new Date(today);
+      day.setDate(day.getDate() - daysAgo);
+
+      const isWeekly = habit.frequency === "weekly";
+      if (isWeekly && day.getDay() !== 0) continue; // semanal: solo domingos
+      // Los últimos días siempre completados, para que la demo muestre rachas activas
+      const done = daysAgo < 5 || random() < habit.rate;
+      if (!done) continue;
+
+      day.setHours(isWeekly ? 18 : 7 + (daysAgo % 12), 0, 0, 0);
+      progress.push({ habitId: habit.id, userId: user.id, completedAt: day });
+    }
+  }
+  const { count } = await prisma.habitProgress.createMany({
+    data: progress,
+    skipDuplicates: true,
+  });
 
   console.log("✅ Database seeded successfully!");
   console.log(`👤 Admin user created: ${admin.email}`);
   console.log(`👤 Regular user created: ${user.email}`);
   console.log(`📚 Sample habits created: ${habits.length}`);
+  console.log(`✔️  Progress entries created: ${count}`);
 }
 
 main()

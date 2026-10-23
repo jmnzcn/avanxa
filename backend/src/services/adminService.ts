@@ -207,10 +207,20 @@ export class AdminService {
           current_database() as database_name
       `;
 
+      const [{ count: activeConnections }] = await prisma.$queryRaw<
+        { count: number }[]
+      >`
+        SELECT count(*)::int AS count
+        FROM pg_stat_activity
+        WHERE datname = current_database()
+      `;
+
       return {
         status: "healthy",
         database: "connected",
         databaseInfo: dbInfo,
+        uptime: Math.round(process.uptime()), // segundos desde que arrancó la API
+        activeConnections,
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
