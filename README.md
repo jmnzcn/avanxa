@@ -12,6 +12,8 @@
 ![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 
+**🚀 [Demo en vivo: avanxa.onrender.com](https://avanxa.onrender.com)** · Usuario demo: `user@avanxa.com` / `user123` · <sub>(plan gratuito: la primera carga puede tardar ~50 s)</sub>
+
 [English summary](#-english-summary) · [Funcionalidades](#-funcionalidades) · [Arquitectura](#-arquitectura) · [Caso de estudio](#-caso-de-estudio-de-prototipo-a-app-integrada) · [Calidad](#-calidad-tests-y-ci) · [Cómo correrlo](#-cómo-correrlo)
 
 ![Panel principal con estadísticas reales del usuario](docs/screenshots/03_dashboard.png)
@@ -175,7 +177,7 @@ docs/screenshots/        capturas del README
 
 La app se despliega como **un solo servicio**: Express sirve la API y también el frontend compilado, en el mismo dominio. Así las cookies de sesión (`httpOnly`, `secure`, `sameSite=strict`) funcionan sin configurar CORS ni cookies entre dominios.
 
-[`render.yaml`](render.yaml) describe toda la infraestructura para [Render](https://render.com) (Blueprint):
+Desplegada en **https://avanxa.onrender.com**. [`render.yaml`](render.yaml) describe toda la infraestructura para [Render](https://render.com) (Blueprint), y cada push a `main` la redespliega:
 
 - **Servicio web** (Node 22): `npm ci` → `prisma generate` → build de backend y frontend.
 - **Arranque**: aplica el esquema con Prisma, carga los datos de demo (idempotente: reiniciar no duplica nada) y levanta la API.
@@ -193,14 +195,13 @@ NODE_ENV=production PORT=3200 DATABASE_URL=... JWT_SECRET=... JWT_REFRESH_SECRET
 
 ## 📌 Estado y próximos pasos
 
-- **Demo pública:** la infraestructura está lista en `render.yaml`; falta crear el servicio en Render.
 - **Tests de componentes:** los flujos principales están cubiertos de punta a punta con Playwright; los componentes de React todavía no tienen tests unitarios propios.
 
 ---
 
 ## 🇺🇸 English summary
 
-**Avanxa** is a full-stack habit tracker: a TypeScript monorepo with a **React 19 + Vite** frontend and an **Express + Prisma + PostgreSQL** REST API (JWT auth in httpOnly cookies, Zod validation, Swagger docs, role-based admin panel with audit logging).
+**Avanxa** ([live demo](https://avanxa.onrender.com)) is a full-stack habit tracker: a TypeScript monorepo with a **React 19 + Vite** frontend and an **Express + Prisma + PostgreSQL** REST API (JWT auth in httpOnly cookies, Zod validation, Swagger docs, role-based admin panel with audit logging).
 
 When I brought the app up to document it, the frontend wasn't really wired to the backend: user data showed as *"undefined"*, the habit list was empty, and the dashboard showed hard-coded numbers. I traced it to a **contract mismatch** (response envelope, field names, enum casing, pagination, missing routes). I fixed it with a single HTTP client plus **adapter layers** in each service, connected the dashboard to 5 real endpoints, and fixed several logic bugs: "completed today", completion rates over 100 %, and date formats the admin API rejected. I also wrote a realistic demo seed. Everything was verified end to end in the browser.
 
