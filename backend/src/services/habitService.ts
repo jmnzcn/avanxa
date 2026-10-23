@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { calculateStreak, type Frequency } from "../lib/streak";
 import { z } from "zod";
 
 // Validation schemas
@@ -389,7 +390,7 @@ export class HabitService {
           notes: true,
         },
       }),
-      this.calculateStreak(habitId),
+      this.calculateStreak(habitId, habit.frequency as Frequency),
     ]);
 
     return {
@@ -408,70 +409,20 @@ export class HabitService {
   }
 
   /**
-   * Calculate habit streak
+   * Calculate habit streak (por días, semanas o meses según la frecuencia)
    */
-  private static async calculateStreak(habitId: string) {
+  private static async calculateStreak(habitId: string, frequency: Frequency) {
     const progress = await prisma.habitProgress.findMany({
       where: { habitId },
       orderBy: { completedAt: "desc" },
       select: { completedAt: true },
     });
 
-    if (progress.length === 0) {
-      return { currentStreak: 0, longestStreak: 0, lastCompleted: null };
-    }
-
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Sort by date (oldest first for streak calculation)
-    const sortedProgress = progress.sort(
-      (a, b) => a.completedAt.getTime() - b.completedAt.getTime()
-    );
-
-    for (let i = 0; i < sortedProgress.length; i++) {
-      const currentProgress = sortedProgress[i];
-      if (!currentProgress) continue;
-
-      const currentDate = new Date(currentProgress.completedAt);
-      currentDate.setHours(0, 0, 0, 0);
-
-      if (i === 0) {
-        tempStreak = 1;
-        if (currentDate.getTime() === today.getTime()) {
-          currentStreak = 1;
-        }
-      } else {
-        const prevProgress = sortedProgress[i - 1];
-        if (!prevProgress) continue;
-
-        const prevDate = new Date(prevProgress.completedAt);
-        prevDate.setHours(0, 0, 0, 0);
-        const dayDiff =
-          (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-
-        if (dayDiff === 1) {
-          tempStreak++;
-          if (
-            i === sortedProgress.length - 1 &&
-            currentDate.getTime() === today.getTime()
-          ) {
-            currentStreak = tempStreak;
-          }
-        } else {
-          tempStreak = 1;
-        }
-      }
-
-      longestStreak = Math.max(longestStreak, tempStreak);
-    }
-
     return {
-      currentStreak,
-      longestStreak,
+      ...calculateStreak(
+        progress.map((p) => p.completedAt),
+        frequency
+      ),
       lastCompleted: progress[0]?.completedAt || null,
     };
   }
