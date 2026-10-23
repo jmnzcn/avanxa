@@ -28,7 +28,8 @@
     "db:studio": "npm run db:studio --workspace=backend",
     "db:seed": "npm run db:seed --workspace=backend",
     "typecheck": "npm run typecheck --workspaces",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "start:prod": "prisma db push --skip-generate --schema backend/prisma/schema.prisma && node backend/dist/prisma/seed.js && node backend/dist/app.js"
   },
   "keywords": [
     "monorepo",

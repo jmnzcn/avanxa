@@ -137,7 +137,7 @@ Abre http://localhost:3000. La documentación de la API está en http://localhos
 | Rol | Email | Contraseña |
 |---|---|---|
 | Usuario | `user@avanxa.com` | `user123` |
-| Admin | `admin@avanxa.com` | `admin123` |
+| Admin | `admin@avanxa.com` | `admin123` (solo en local; en producción la genera Render) |
 
 <details>
 <summary>Otros comandos</summary>
@@ -171,9 +171,29 @@ docs/screenshots/        capturas del README
 
 ---
 
+## ☁️ Despliegue
+
+La app se despliega como **un solo servicio**: Express sirve la API y también el frontend compilado, en el mismo dominio. Así las cookies de sesión (`httpOnly`, `secure`, `sameSite=strict`) funcionan sin configurar CORS ni cookies entre dominios.
+
+[`render.yaml`](render.yaml) describe toda la infraestructura para [Render](https://render.com) (Blueprint):
+
+- **Servicio web** (Node 22): `npm ci` → `prisma generate` → build de backend y frontend.
+- **Arranque**: aplica el esquema con Prisma, carga los datos de demo (idempotente: reiniciar no duplica nada) y levanta la API.
+- **PostgreSQL** administrado, conectado automáticamente vía `DATABASE_URL`.
+- **Secretos generados por Render**: `JWT_SECRET`, `JWT_REFRESH_SECRET` y la contraseña del admin de la demo (`DEMO_ADMIN_PASSWORD`). El admin público nunca usa una contraseña conocida.
+
+Para probar el modo producción en local:
+
+```bash
+VITE_API_URL= npm run build
+NODE_ENV=production PORT=3200 DATABASE_URL=... JWT_SECRET=... JWT_REFRESH_SECRET=... DEMO_ADMIN_PASSWORD=... npm run start:prod
+```
+
+---
+
 ## 📌 Estado y próximos pasos
 
-- **Despliegue público:** el siguiente paso es publicar una demo (por ejemplo, frontend en Vercel y API + PostgreSQL en Render o Railway).
+- **Demo pública:** la infraestructura está lista en `render.yaml`; falta crear el servicio en Render.
 - **Tests de componentes:** los flujos principales están cubiertos de punta a punta con Playwright; los componentes de React todavía no tienen tests unitarios propios.
 
 ---

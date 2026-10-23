@@ -1,0 +1,37 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+# Un solo servicio web (API + frontend en el mismo dominio) y una base PostgreSQL.
+databases:
+  - name: avanxa-db
+    plan: free
+    region: virginia
+    databaseName: avanxa
+    user: avanxa
+
+services:
+  - type: web
+    name: avanxa
+    runtime: node
+    plan: free
+    region: virginia
+    # Las devDependencies (TypeScript, Vite, Prisma CLI) hacen falta para compilar y
+    # aplicar el esquema. VITE_API_URL vacío = el frontend llama a la API en su mismo dominio.
+    buildCommand: npm ci --include=dev && npm run db:generate && VITE_API_URL= npm run build
+    # Aplica el esquema, carga los datos de demo (idempotente) y arranca la API
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: avanxa-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Contraseña del admin de la demo: Render la genera y solo se ve en el panel
+      - key: DEMO_ADMIN_PASSWORD
+        generateValue: true

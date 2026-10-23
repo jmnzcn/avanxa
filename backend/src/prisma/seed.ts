@@ -26,8 +26,14 @@ function seededRandom(seed: number) {
 async function main() {
   console.log("🌱 Starting database seed...");
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash("admin123", 12);
+  // Create admin user. En producción la contraseña sale de DEMO_ADMIN_PASSWORD
+  // (la demo pública no puede tener un admin con contraseña conocida).
+  const isProduction = process.env.NODE_ENV === "production";
+  const adminPlainPassword = process.env.DEMO_ADMIN_PASSWORD ?? (isProduction ? undefined : "admin123");
+  if (!adminPlainPassword) {
+    throw new Error("DEMO_ADMIN_PASSWORD is required in production");
+  }
+  const adminPassword = await bcrypt.hash(adminPlainPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: "admin@avanxa.com" },
     update: {},
