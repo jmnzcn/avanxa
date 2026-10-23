@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import fs from "fs";
+import path from "path";
 import { env } from "./config/environment";
 
 import {
@@ -97,6 +99,17 @@ app.get("/api", (req, res) => {
     documentation: "/api-docs",
   });
 });
+
+// Frontend compilado (producción): API y app web en un solo servicio y un solo
+// dominio, así las cookies de sesión (sameSite=strict) funcionan sin CORS.
+const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+if (fs.existsSync(path.join(frontendDist, "index.html"))) {
+  app.use(express.static(frontendDist, { index: false, maxAge: "1h" }));
+  // Rutas de React Router (/dashboard, /habits/…): devolver la SPA
+  app.get(/^\/(?!api(\/|$)|api-docs|health).*/, (req, res) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+}
 
 // 404 handler
 app.use("*", (req, res) => {
