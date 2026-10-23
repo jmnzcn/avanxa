@@ -2,6 +2,8 @@
 
 **Aplicación full-stack para crear hábitos, registrarlos cada día y ver tu progreso con rachas, estadísticas y un panel de administración.** Monorepo en TypeScript: React 19 en el frontend y una API REST con Express, Prisma y PostgreSQL.
 
+[![ci](https://github.com/jmnzcn/avanxa/actions/workflows/ci.yml/badge.svg)](https://github.com/jmnzcn/avanxa/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-60-2EA44F)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
@@ -9,7 +11,7 @@
 ![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 
-[English summary](#-english-summary) · [Funcionalidades](#-funcionalidades) · [Arquitectura](#-arquitectura) · [Caso de estudio](#-caso-de-estudio-de-prototipo-a-app-integrada) · [Cómo correrlo](#-cómo-correrlo)
+[English summary](#-english-summary) · [Funcionalidades](#-funcionalidades) · [Arquitectura](#-arquitectura) · [Caso de estudio](#-caso-de-estudio-de-prototipo-a-app-integrada) · [Calidad](#-calidad-tests-y-ci) · [Cómo correrlo](#-cómo-correrlo)
 
 ![Panel principal con estadísticas reales del usuario](docs/screenshots/03_dashboard.png)
 
@@ -19,7 +21,7 @@
 
 - **Hábitos:** crear, editar, desactivar y eliminar hábitos diarios, semanales o mensuales, con búsqueda, filtros y paginación.
 - **Registro diario:** marcar un hábito como completado, con notas opcionales; el backend evita duplicados el mismo día.
-- **Progreso:** racha actual y más larga, tasa de cumplimiento, progreso por semana y por mes, y logros desbloqueables.
+- **Progreso:** racha actual y más larga (contada en días, semanas o meses según la frecuencia del hábito), tasa de cumplimiento, progreso por semana y por mes, y logros desbloqueables.
 - **Panel principal:** hábitos activos, mejor racha, completados hoy, porcentaje de la semana y del mes, actividad reciente y cumplimiento por hábito en los últimos 30 días.
 - **Administración:** estado del sistema (base de datos, tiempo activo, conexiones), métricas globales, gestión de usuarios (bloquear, restablecer contraseña, eliminar) y registro de auditoría de cada acción de admin.
 - **API documentada** con Swagger en `/api-docs`.
@@ -79,10 +81,28 @@ Al levantar la app para documentarla, el frontend y el backend **no estaban cone
    - La tasa de cumplimiento podía superar el 100 %.
    - El panel de admin enviaba fechas `YYYY-MM-DD` cuando el backend exige ISO completo.
    - Faltaban el tiempo activo y las conexiones del sistema; los agregué al endpoint de salud con datos reales en vez de inventarlos.
-5. **Detalles de interfaz:** el menú lateral tapaba el contenido en pantallas angostas, había dos enlaces del menú sin página detrás, un título duplicado y un botón con texto ilegible.
-6. **Datos de demo realistas:** el seed ahora crea 5 hábitos con 6 semanas de historial determinista, para que rachas y gráficos tengan sentido.
+5. **Un hueco de seguridad:** un usuario bloqueado por el admin seguía usando la API hasta que vencía su token, porque el middleware que revisaba el bloqueo existía pero ninguna ruta lo usaba. Ahora la verificación ocurre en cada request autenticado; lo detectó un test.
+6. **Rachas mal calculadas:** había dos copias del mismo algoritmo, que siempre contaban días (en un hábito semanal la racha nunca pasaba de 1) y comparaban fechas en milisegundos, lo que fallaba en los cambios de horario de verano. Lo reemplacé por una función pura que cuenta por día, semana o mes ([`backend/src/lib/streak.ts`](backend/src/lib/streak.ts)).
+7. **Detalles de interfaz:** el menú lateral tapaba el contenido en pantallas angostas, había dos enlaces del menú sin página detrás, un título duplicado y un botón con texto ilegible.
+8. **Datos de demo realistas:** el seed ahora crea 5 hábitos con 6 semanas de historial determinista, para que rachas y gráficos tengan sentido.
 
-Verificado en el navegador: login, panel, lista de hábitos, registro de un hábito, progreso y panel de admin. El build de producción compila, el backend no tiene errores de tipos y el frontend no suma errores nuevos de TypeScript (ver [estado](#-estado-y-próximos-pasos)).
+Verificado en el navegador (login, panel, hábitos, registro de un hábito, progreso y admin) y cubierto por los tests de la sección siguiente.
+
+---
+
+## 🧪 Calidad: tests y CI
+
+| | |
+|---|---|
+| **Backend: 42 tests** | Vitest + Supertest contra una base PostgreSQL de prueba que se recrea en cada corrida: registro y login, cookies `httpOnly`, usuarios bloqueados, CRUD de hábitos, aislamiento entre usuarios, registro diario sin duplicados, rachas diarias y semanales, permisos de admin, auditoría y salud del sistema |
+| **Frontend: 18 tests** | Vitest sobre el cliente HTTP y los adaptadores de cada servicio: traducción del contrato de la API, agregación del panel y manejo de fechas |
+| **Tipos** | 0 errores de TypeScript en backend y frontend (había 61 en el frontend: React Query v5 y un conflicto de versiones de Zod en el monorepo) |
+| **CI** | GitHub Actions en cada push y pull request: levanta PostgreSQL, verifica tipos, corre los tests y hace el build |
+
+```bash
+npm run typecheck   # backend + frontend
+npm test            # 60 tests (el backend necesita el PostgreSQL de docker compose)
+```
 
 ---
 
@@ -149,10 +169,8 @@ docs/screenshots/        capturas del README
 
 ## 📌 Estado y próximos pasos
 
-- **Sin tests automatizados todavía.** Es lo siguiente: tests de la API con Supertest y de los servicios del frontend.
-- **Errores de TypeScript heredados en el frontend.** Vite no verifica tipos, así que la app corre y compila, pero `tsc` reporta 61 errores previos (imports sin usar y tipos genéricos de React Query). Ninguno viene de los cambios de integración.
-- **Rachas de hábitos semanales:** el backend cuenta rachas por días consecutivos, así que en un hábito semanal la racha máxima es 1. Falta contar por semanas.
-- **Sin despliegue público** todavía.
+- **Despliegue público:** el siguiente paso es publicar una demo (por ejemplo, frontend en Vercel y API + PostgreSQL en Render o Railway).
+- **Tests de interfaz:** los componentes de React no tienen tests propios todavía; un siguiente paso natural son tests end-to-end con Playwright sobre los flujos principales.
 
 ---
 
@@ -161,6 +179,8 @@ docs/screenshots/        capturas del README
 **Avanxa** is a full-stack habit tracker: a TypeScript monorepo with a **React 19 + Vite** frontend and an **Express + Prisma + PostgreSQL** REST API (JWT auth in httpOnly cookies, Zod validation, Swagger docs, role-based admin panel with audit logging).
 
 When I brought the app up to document it, the frontend wasn't really wired to the backend: user data showed as *"undefined"*, the habit list was empty, and the dashboard showed hard-coded numbers. I traced it to a **contract mismatch** (response envelope, field names, enum casing, pagination, missing routes). I fixed it with a single HTTP client plus **adapter layers** in each service, connected the dashboard to 5 real endpoints, and fixed several logic bugs: "completed today", completion rates over 100 %, and date formats the admin API rejected. I also wrote a realistic demo seed. Everything was verified end to end in the browser.
+
+I then added **60 automated tests** (42 backend API tests with Vitest + Supertest against a real PostgreSQL database, 18 frontend tests for the service adapters), took the frontend from **61 TypeScript errors to 0**, and set up **GitHub Actions CI**. The tests surfaced a real security gap: blocked users kept API access until their token expired. I also rewrote streak calculation to count days, weeks or months depending on the habit's frequency, and to stay correct across DST changes.
 
 ---
 
