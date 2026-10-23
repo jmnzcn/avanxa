@@ -3,7 +3,8 @@
 **Aplicación full-stack para crear hábitos, registrarlos cada día y ver tu progreso con rachas, estadísticas y un panel de administración.** Monorepo en TypeScript: React 19 en el frontend y una API REST con Express, Prisma y PostgreSQL.
 
 [![ci](https://github.com/jmnzcn/avanxa/actions/workflows/ci.yml/badge.svg)](https://github.com/jmnzcn/avanxa/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-60-2EA44F)
+![Tests](https://img.shields.io/badge/tests-70-2EA44F)
+![Playwright](https://img.shields.io/badge/e2e-Playwright-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
@@ -96,12 +97,15 @@ Verificado en el navegador (login, panel, hábitos, registro de un hábito, prog
 |---|---|
 | **Backend: 42 tests** | Vitest + Supertest contra una base PostgreSQL de prueba que se recrea en cada corrida: registro y login, cookies `httpOnly`, usuarios bloqueados, CRUD de hábitos, aislamiento entre usuarios, registro diario sin duplicados, rachas diarias y semanales, permisos de admin, auditoría y salud del sistema |
 | **Frontend: 18 tests** | Vitest sobre el cliente HTTP y los adaptadores de cada servicio: traducción del contrato de la API, agregación del panel y manejo de fechas |
+| **End-to-end: 10 tests** | Playwright en un navegador real contra la API y el frontend levantados con datos de demo: login y logout, registro, rutas protegidas, panel con datos reales, crear y completar un hábito, progreso y acceso al admin. Encontraron que `/register` mostraba el formulario de login |
 | **Tipos** | 0 errores de TypeScript en backend y frontend (había 61 en el frontend: React Query v5 y un conflicto de versiones de Zod en el monorepo) |
-| **CI** | GitHub Actions en cada push y pull request: levanta PostgreSQL, verifica tipos, corre los tests y hace el build |
+| **CI** | GitHub Actions en cada push y pull request: levanta PostgreSQL, verifica tipos, corre los tests unitarios y de API, hace el build y luego corre los tests end-to-end |
 
 ```bash
 npm run typecheck   # backend + frontend
-npm test            # 60 tests (el backend necesita el PostgreSQL de docker compose)
+npm test            # 60 tests unitarios y de API (el backend necesita el PostgreSQL de docker compose)
+npx playwright install chromium   # solo la primera vez
+npm run e2e         # 10 tests end-to-end: levanta API y frontend en los puertos 3101/3100
 ```
 
 ---
@@ -170,7 +174,7 @@ docs/screenshots/        capturas del README
 ## 📌 Estado y próximos pasos
 
 - **Despliegue público:** el siguiente paso es publicar una demo (por ejemplo, frontend en Vercel y API + PostgreSQL en Render o Railway).
-- **Tests de interfaz:** los componentes de React no tienen tests propios todavía; un siguiente paso natural son tests end-to-end con Playwright sobre los flujos principales.
+- **Tests de componentes:** los flujos principales están cubiertos de punta a punta con Playwright; los componentes de React todavía no tienen tests unitarios propios.
 
 ---
 
@@ -180,7 +184,7 @@ docs/screenshots/        capturas del README
 
 When I brought the app up to document it, the frontend wasn't really wired to the backend: user data showed as *"undefined"*, the habit list was empty, and the dashboard showed hard-coded numbers. I traced it to a **contract mismatch** (response envelope, field names, enum casing, pagination, missing routes). I fixed it with a single HTTP client plus **adapter layers** in each service, connected the dashboard to 5 real endpoints, and fixed several logic bugs: "completed today", completion rates over 100 %, and date formats the admin API rejected. I also wrote a realistic demo seed. Everything was verified end to end in the browser.
 
-I then added **60 automated tests** (42 backend API tests with Vitest + Supertest against a real PostgreSQL database, 18 frontend tests for the service adapters), took the frontend from **61 TypeScript errors to 0**, and set up **GitHub Actions CI**. The tests surfaced a real security gap: blocked users kept API access until their token expired. I also rewrote streak calculation to count days, weeks or months depending on the habit's frequency, and to stay correct across DST changes.
+I then added **70 automated tests** (42 backend API tests with Vitest + Supertest against a real PostgreSQL database, 18 frontend tests for the service adapters, and 10 Playwright end-to-end tests in a real browser), took the frontend from **61 TypeScript errors to 0**, and set up **GitHub Actions CI**. The tests surfaced a real security gap: blocked users kept API access until their token expired. I also rewrote streak calculation to count days, weeks or months depending on the habit's frequency, and to stay correct across DST changes.
 
 ---
 
