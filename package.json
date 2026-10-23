@@ -26,7 +26,8 @@
     "db:push": "npm run db:push --workspace=backend",
     "db:migrate": "npm run db:migrate --workspace=backend",
     "db:studio": "npm run db:studio --workspace=backend",
-    "db:seed": "npm run db:seed --workspace=backend"
+    "db:seed": "npm run db:seed --workspace=backend",
+    "typecheck": "npm run typecheck --workspaces"
   },
   "keywords": [
     "monorepo",

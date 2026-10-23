@@ -129,11 +129,13 @@ app.use(
   }
 );
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Avanxa Backend running on port ${PORT}`);
-  console.log(`🌍 Environment: ${env.NODE_ENV}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-});
+// Start server (solo al ejecutar este archivo; los tests importan `app` sin abrir un puerto)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Avanxa Backend running on port ${PORT}`);
+    console.log(`🌍 Environment: ${env.NODE_ENV}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  });
+}
 
 export default app;
