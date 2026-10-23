@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService, JWTPayload } from "../services/authService";
+import { prisma } from "../lib/prisma";
 
 // Extend Express Request interface to include user
 declare global {
@@ -28,11 +29,9 @@ export const authenticate = async (
       });
     }
 
+    let decoded: JWTPayload;
     try {
-      const decoded = AuthService.verifyAccessToken(token);
-      req.user = decoded;
-      next();
-      return;
+      decoded = AuthService.verifyAccessToken(token);
     } catch (error) {
       // Token is invalid or expired
       return res.status(401).json({
@@ -40,6 +39,23 @@ export const authenticate = async (
         message: "Access token is invalid or expired",
       });
     }
+
+    // El JWT sigue siendo válido hasta que expira: hay que comprobar en cada
+    // request que el usuario exista y no haya sido bloqueado por un admin
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { isBlocked: true },
+    });
+    if (!user || user.isBlocked) {
+      return res.status(403).json({
+        error: "Account blocked",
+        message: "Your account has been blocked",
+      });
+    }
+
+    req.user = decoded;
+    next();
+    return;
   } catch (error) {
     return res.status(500).json({
       error: "Authentication error",
@@ -150,46 +166,5 @@ export const optionalAuth = async (
     // Continue without authentication
     next();
     return;
-  }
-};
-
-/**
- * Middleware to check if user is blocked
- */
-export const checkUserStatus = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  if (!req.user) {
-    return res.status(401).json({
-      error: "Authentication required",
-      message: "User not authenticated",
-    });
-  }
-
-  try {
-    // Check if user is still active and not blocked
-    const user = await import("../lib/prisma").then((m) =>
-      m.prisma.user.findUnique({
-        where: { id: req.user!.userId },
-        select: { isBlocked: true },
-      })
-    );
-
-    if (!user || user.isBlocked) {
-      return res.status(403).json({
-        error: "Account blocked",
-        message: "Your account has been blocked",
-      });
-    }
-
-    next();
-    return;
-  } catch (error) {
-    return res.status(500).json({
-      error: "Authentication error",
-      message: "Error checking user status",
-    });
   }
 };
