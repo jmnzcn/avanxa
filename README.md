@@ -16,7 +16,9 @@
 
 [English summary](#-english-summary) · [Funcionalidades](#-funcionalidades) · [Arquitectura](#-arquitectura) · [Caso de estudio](#-caso-de-estudio-de-prototipo-a-app-integrada) · [Calidad](#-calidad-tests-y-ci) · [Cómo correrlo](#-cómo-correrlo)
 
-![Panel principal con estadísticas reales del usuario](docs/screenshots/03_dashboard.png)
+![Demo: login, panel, marcar un hábito como completado y ver el progreso](docs/demo.gif)
+
+<sub>Iniciar sesión, ver el panel con datos reales, marcar un hábito como completado y ver cómo el panel pasa de 4/5 a 5/5.</sub>
 
 ---
 
